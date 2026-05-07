@@ -157,8 +157,8 @@ input:focus{border-color:var(--blue)}input::placeholder{color:var(--muted)}
 <script>
 var S={sub:'',token:''};
 var PROC=['lipo','lipoaspiracao','glutea','bumbum','quadril','harmonizacao'];
-function save(){localStorage.setItem('kd7',JSON.stringify({sub:S.sub,token:S.token}))}
-function load(){try{var d=JSON.parse(localStorage.getItem('kd7')||'{}');Object.assign(S,d);return!!(S.sub&&S.token)}catch(e){return false}}
+function save(){localStorage.setItem('kd8',JSON.stringify({sub:S.sub,token:S.token}))}
+function load(){try{var d=JSON.parse(localStorage.getItem('kd8')||'{}');Object.assign(S,d);return!!(S.sub&&S.token)}catch(e){return false}}
 function show(id){['tLogin','tLoad','tDash'].forEach(function(t){document.getElementById(t).classList.toggle('hide',t!==id)})}
 function step(n){[0,1,2,3].forEach(function(i){var el=document.getElementById('s'+i);el.classList.remove('active','done');if(i<n)el.classList.add('done');else if(i===n)el.classList.add('active')})}
 
@@ -176,24 +176,14 @@ async function api(path){
   var cleanPath=path.replace(/^\//,'');
   var url='/api/kommo?subdomain='+encodeURIComponent(S.sub)+'&path='+encodeURIComponent(cleanPath);
   var r=await fetch(url,{headers:{'x-kommo-token':S.token}});
-  if(!r.ok) throw new Error('Erro '+r.status);
-  return r.json();
-    }
-  });
-  if(!r.ok) throw new Error('Erro '+r.status);
+  if(!r.ok)throw new Error('Erro '+r.status);
   return r.json();
 }
 
 async function loadDash(){
   show('tLoad');step(0);
   try{await api('account')}
-  catch(e){
-    show('tLogin');
-    var err=document.getElementById('errBox');
-    err.textContent='Erro de conexao: '+e.message+'. Verifique subdominio e token.';
-    err.style.display='block';
-    return;
-  }
+  catch(e){show('tLogin');var err=document.getElementById('errBox');err.textContent='Erro: '+e.message;err.style.display='block';return}
   step(1);
   var leads=[];
   try{
@@ -203,32 +193,19 @@ async function loadDash(){
       leads=leads.concat(b);
       if(b.length<250)break;
     }
-  }catch(e){
-    show('tLogin');
-    document.getElementById('errBox').textContent='Erro ao buscar leads: '+e.message;
-    document.getElementById('errBox').style.display='block';
-    return;
-  }
+  }catch(e){show('tLogin');document.getElementById('errBox').textContent='Erro leads: '+e.message;document.getElementById('errBox').style.display='block';return}
   step(2);
   var notes={};
   try{
     var ids=leads.slice(0,50).map(function(l){return l.id}).join(',');
     var nr=await api('leads/notes?limit=250&filter[entity_id]='+ids);
-    ((nr._embedded&&nr._embedded.notes)||[]).forEach(function(n){
-      if(!notes[n.entity_id])notes[n.entity_id]=[];
-      notes[n.entity_id].push(n);
-    });
+    ((nr._embedded&&nr._embedded.notes)||[]).forEach(function(n){if(!notes[n.entity_id])notes[n.entity_id]=[];notes[n.entity_id].push(n)});
   }catch(e){}
   step(3);
   var todayTs=Math.floor(new Date().setHours(0,0,0,0)/1000);
   var todayL=leads.filter(function(l){return l.created_at>=todayTs});
   var procL=leads.filter(function(l){return matchProc(l)});
-  var noRepL=leads.filter(function(l){
-    var ns=notes[l.id]||[];
-    if(!ns.length)return true;
-    var last=ns.sort(function(a,b){return b.created_at-a.created_at})[0];
-    return last&&['common','call_in'].indexOf(last.note_type)>=0;
-  });
+  var noRepL=leads.filter(function(l){var ns=notes[l.id]||[];if(!ns.length)return true;var last=ns.sort(function(a,b){return b.created_at-a.created_at})[0];return last&&['common','call_in'].indexOf(last.note_type)>=0});
   var ai=null;
   try{ai=await runAI(leads.slice(0,40))}catch(e){}
   document.getElementById('topDate').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
@@ -239,29 +216,15 @@ async function loadDash(){
   document.getElementById('mTotal').textContent=leads.length;
   renderList('lNew','cNew',todayL,function(){return[{l:'Novo hoje',c:'tg'}]});
   renderList('lNoRep','cNoRep',noRepL,function(){return[{l:'Aguardando',c:'tp'}]});
-  renderList('lProc','cProc',procL,function(l){
-    var t=(l.name||'').toLowerCase();
-    var tags=[];
-    if(t.indexOf('lipo')>=0)tags.push({l:'Lipo',c:'tg'});
-    if(t.indexOf('glut')>=0||t.indexOf('bumbum')>=0)tags.push({l:'Harm. Glutea',c:'tg'});
-    return tags.length?tags:[{l:'Procedimento',c:'tg'}];
-  });
+  renderList('lProc','cProc',procL,function(l){var t=(l.name||'').toLowerCase();var tags=[];if(t.indexOf('lipo')>=0)tags.push({l:'Lipo',c:'tg'});if(t.indexOf('glut')>=0||t.indexOf('bumbum')>=0)tags.push({l:'Harm. Glutea',c:'tg'});return tags.length?tags:[{l:'Procedimento',c:'tg'}]});
   if(ai){renderTemp(ai.temperature);renderGarg(ai.gargalos);renderScripts(ai.scripts);}
-  else{['lTemp','lGarg','lScripts'].forEach(function(id){document.getElementById(id).innerHTML='<div class="empty">IA indisponivel.</div>'});}
+  else{['lTemp','lGarg','lScripts'].forEach(function(id){document.getElementById(id).innerHTML='<div class="empty">IA indisponivel.</div>'})}
   show('tDash');
 }
 
 async function runAI(leads){
   var p=leads.map(function(l){return{id:l.id,name:l.name,price:l.price,created_at:l.created_at,status_id:l.status_id}});
-  var r=await fetch('https://api.anthropic.com/v1/messages',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      model:'claude-sonnet-4-20250514',max_tokens:1500,
-      system:'Especialista em vendas de clinica estetica. Retorne APENAS JSON valido sem markdown:\n{"temperature":[{"id":0,"name":"","temp":"quente|morno|frio","reason":""}],"gargalos":["","",""],"scripts":[{"situation":"","script":""},{"situation":"","script":""}]}\nQuente=lead recente com alto valor. Frio=antigo sem interacao. Scripts praticos para WhatsApp.',
-      messages:[{role:'user',content:'Leads: '+JSON.stringify(p)}]
-    })
-  });
+  var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,system:'Especialista em vendas de clinica estetica. Retorne APENAS JSON valido sem markdown:\n{"temperature":[{"id":0,"name":"","temp":"quente|morno|frio","reason":""}],"gargalos":["","",""],"scripts":[{"situation":"","script":""},{"situation":"","script":""}]}\nQuente=lead recente com alto valor. Frio=antigo sem interacao. Scripts praticos para WhatsApp.',messages:[{role:'user',content:'Leads: '+JSON.stringify(p)}]})});
   if(!r.ok)return null;
   var d=await r.json();
   var txt=(d.content||[]).map(function(c){return c.text||''}).join('');
@@ -278,37 +241,17 @@ function renderList(lid,cid,leads,fn){
   if(cid)document.getElementById(cid).textContent=leads.length;
   var el=document.getElementById(lid);
   if(!leads.length){el.innerHTML='<div class="empty">Nenhum lead encontrado.</div>';return}
-  el.innerHTML=leads.slice(0,10).map(function(l){
-    return'<div class="leadRow"><div class="ava" style="'+ava(l.name)+'">'+ini(l.name)+'</div><div style="flex:1;min-width:0"><div class="leadName">'+(l.name||'Sem nome')+'</div><div class="leadMeta">'+ago(l.created_at)+(l.price?' - R$ '+l.price.toLocaleString('pt-BR'):'')+'</div><div class="tags">'+fn(l).map(function(b){return'<span class="tag '+b.c+'">'+b.l+'</span>'}).join('')+'</div></div></div>';
-  }).join('');
+  el.innerHTML=leads.slice(0,10).map(function(l){return'<div class="leadRow"><div class="ava" style="'+ava(l.name)+'">'+ini(l.name)+'</div><div style="flex:1;min-width:0"><div class="leadName">'+(l.name||'Sem nome')+'</div><div class="leadMeta">'+ago(l.created_at)+(l.price?' - R$ '+l.price.toLocaleString('pt-BR'):'')+'</div><div class="tags">'+fn(l).map(function(b){return'<span class="tag '+b.c+'">'+b.l+'</span>'}).join('')+'</div></div></div>'}).join('');
 }
 function renderTemp(temps){
   var el=document.getElementById('lTemp');
   if(!temps||!temps.length){el.innerHTML='<div class="empty">Sem dados.</div>';return}
-  el.innerHTML=temps.slice(0,12).map(function(l){
-    var cls=l.temp==='quente'?'tr':l.temp==='morno'?'ty':'tb';
-    var ic=l.temp==='quente'?'🔥':l.temp==='morno'?'🌤':'🧊';
-    return'<div class="leadRow"><div class="ava" style="'+ava(l.name)+'">'+ini(l.name)+'</div><div style="flex:1;min-width:0"><div class="leadName">'+(l.name||'Lead #'+l.id)+'</div><div class="leadMeta">'+(l.reason||'')+'</div><div class="tags"><span class="tag '+cls+'">'+ic+' '+l.temp+'</span></div></div></div>';
-  }).join('');
+  el.innerHTML=temps.slice(0,12).map(function(l){var cls=l.temp==='quente'?'tr':l.temp==='morno'?'ty':'tb';var ic=l.temp==='quente'?'🔥':l.temp==='morno'?'🌤':'🧊';return'<div class="leadRow"><div class="ava" style="'+ava(l.name)+'">'+ini(l.name)+'</div><div style="flex:1;min-width:0"><div class="leadName">'+(l.name||'Lead #'+l.id)+'</div><div class="leadMeta">'+(l.reason||'')+'</div><div class="tags"><span class="tag '+cls+'">'+ic+' '+l.temp+'</span></div></div></div>'}).join('');
 }
-function renderGarg(g){
-  var el=document.getElementById('lGarg');
-  if(!g||!g.length){el.innerHTML='<div class="empty">Sem dados.</div>';return}
-  el.innerHTML=g.map(function(x,i){return'<div class="aiBlock"><strong>Gargalo '+(i+1)+':</strong> '+x+'</div>'}).join('');
-}
-function renderScripts(s){
-  var el=document.getElementById('lScripts');
-  if(!s||!s.length){el.innerHTML='<div class="empty">Sem scripts.</div>';return}
-  el.innerHTML=s.map(function(x){return'<div class="scriptCard"><div class="scriptSit">'+x.situation+'</div><div class="scriptTxt">'+x.script+'</div></div>'}).join('');
-}
-function tab(t){
-  var map={leads:['tbLeads','pLeads'],ai:['tbAi','pAi'],scripts:['tbScripts','pScripts']};
-  Object.entries(map).forEach(function(e){
-    document.getElementById(e[1][0]).classList.toggle('on',e[0]===t);
-    document.getElementById(e[1][1]).classList.toggle('on',e[0]===t);
-  });
-}
-function logout(){localStorage.removeItem('kd7');S.sub='';S.token='';show('tLogin')}
+function renderGarg(g){var el=document.getElementById('lGarg');if(!g||!g.length){el.innerHTML='<div class="empty">Sem dados.</div>';return}el.innerHTML=g.map(function(x,i){return'<div class="aiBlock"><strong>Gargalo '+(i+1)+':</strong> '+x+'</div>'}).join('')}
+function renderScripts(s){var el=document.getElementById('lScripts');if(!s||!s.length){el.innerHTML='<div class="empty">Sem scripts.</div>';return}el.innerHTML=s.map(function(x){return'<div class="scriptCard"><div class="scriptSit">'+x.situation+'</div><div class="scriptTxt">'+x.script+'</div></div>'}).join('')}
+function tab(t){var map={leads:['tbLeads','pLeads'],ai:['tbAi','pAi'],scripts:['tbScripts','pScripts']};Object.entries(map).forEach(function(e){document.getElementById(e[1][0]).classList.toggle('on',e[0]===t);document.getElementById(e[1][1]).classList.toggle('on',e[0]===t)})}
+function logout(){localStorage.removeItem('kd8');S.sub='';S.token='';show('tLogin')}
 async function reloadData(){if(S.token)await loadDash()}
 window.addEventListener('DOMContentLoaded',function(){if(load())loadDash();else show('tLogin')});
 </script>
