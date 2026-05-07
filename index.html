@@ -222,14 +222,20 @@ async function kommo(path){
 
 async function callAI(system,userMsg){
   if(!S.aiKey)return null;
-  var r=await fetch('/api/proxy?service=ai',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({apiKey:S.aiKey,system:system,messages:[{role:'user',content:userMsg}]})
-  });
-  if(!r.ok)return null;
-  var d=await r.json();
-  return(d.content||[]).map(function(c){return c.text||''}).join('');
+  try{
+    var r=await fetch('/api/proxy?service=ai',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({apiKey:S.aiKey,system:system,messages:[{role:'user',content:userMsg}]})
+    });
+    var d=await r.json();
+    console.log('AI status:',r.status,'resposta:',JSON.stringify(d).slice(0,300));
+    if(!r.ok)return null;
+    return(d.content||[]).map(function(c){return c.text||''}).join('');
+  }catch(e){
+    console.log('AI erro:',e.message);
+    return null;
+  }
 }
 
 async function loadDash(){
