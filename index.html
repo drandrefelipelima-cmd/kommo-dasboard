@@ -210,8 +210,13 @@ async function connect(){
 async function kommo(path){
   var cleanPath=path.replace(/^\//,'');
   var url='/api/proxy?service=kommo&subdomain='+encodeURIComponent(S.sub)+'&path='+encodeURIComponent(cleanPath)+'&token='+encodeURIComponent(S.token);
+  console.log('Chamando:', cleanPath);
   var r=await fetch(url);
-  if(!r.ok)throw new Error('Kommo erro '+r.status);
+  if(!r.ok){
+    var txt=await r.text();
+    console.log('Erro resposta:', txt);
+    throw new Error('Kommo erro '+r.status+' em '+cleanPath);
+  }
   return r.json();
 }
 
