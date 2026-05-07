@@ -1,7 +1,8 @@
 {
   "version": 2,
   "routes": [
-    { "src": "/api/kommo", "dest": "/api/kommo.js" },
+    { "src": "/api/proxy", "dest": "/api/proxy.js" },
+    { "src": "/api/kommo", "dest": "/api/proxy.js" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
