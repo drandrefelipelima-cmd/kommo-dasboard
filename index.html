@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Comercial — Kommo</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0d0f12; --bg2: #13161b; --bg3: #1a1e25;
+  --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.12);
+  --text: #e8eaf0; --muted: #6b7280;
+  --accent: #3b82f6; --accent2: #1d4ed8;
+  --hot: #ef4444; --warm: #f59e0b; --cold: #3b82f6;
+  --green: #10b981; --pink: #ec4899;
+  --radius: 12px; --radius-sm: 8px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 15px; }
+.screen { display: none; }
+.screen.active { display: block; }
+
+/* SETUP */
+#s-setup { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:2rem; }
+.setup-card { width:100%; max-width:460px; background:var(--bg2); border:1px solid var(--border); border-radius:20px; padding:2.5rem; }
+.logo-row { display:flex; align-items:center; gap:12px; margin-bottom:2rem; }
+.logo-icon { width:44px; height:44px; background:var(--accent); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:20px; }
+.logo-text { font-size:18px; font-weight:600; }
+.logo-sub { font-size:12px; color:var(--muted); margin-top:2px; }
+label { font-size:12px; font-weight:500; color:var(--muted); letter-spacing:0.05em; text-transform:uppercase; display:block; margin-bottom:6px; margin-top:18px; }
+input[type=text], input[type=password] { width:100%; background:var(--bg3); border:1px solid var(--border2); border-radius:var(--radius-sm); padding:11px 14px; color:var(--text); font-family:'DM Sans',sans-serif; font-size:14px; outline:none; transition:border-color 0.2s; }
+input:focus { border-color:var(--accent); }
+input::placeholder { color:var(--muted); }
+.btn-connect { width:100%; margin-top:24px; padding:13px; background:var(--accent); color:#fff; border:none; border-radius:var(--radius-sm); font-size:15px; font-weight:600; cursor:pointer; font-family:'DM Sans',sans-serif; transition:background 0.2s,transform 0.1s; display:flex; align-items:center; justify-content:center; gap:8px; }
+.btn-connect:hover { background:var(--accent2); }
+.btn-connect:active { transform:scale(0.98); }
+.err-msg { color:var(--hot); font-size:13px; margin-top:12px; display:none; line-height:1.5; background:rgba(239,68,68,0.08); padding:10px 14px; border-radius:var(--radius-sm); }
+.info-box { background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px 14px; font-size:12px; color:var(--muted); margin-top:20px; line-height:1.7; }
+.info-box strong { color:var(--text); font-weight:500; }
+.redirect-uri { font-family:'DM Mono',monospace; font-size:12px; color:#60a5fa; background:rgba(59,130,246,0.08); padding:6px 10px; border-radius:6px; display:block; margin-top:4px; word-break:break-all; }
+
+/* OAUTH */
+#s-oauth { min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:2rem; }
+.spinner { width:48px; height:48px; border:3px solid var(--border2); border-top-color:var(--accent); border-radius:50%; animation:spin 0.8s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.oauth-title { font-size:18px; font-weight:500; }
+.oauth-sub { font-size:14px; color:var(--muted); text-align:center; max-width:360px; line-height:1.7; }
+.btn-cancel { margin-top:8px; padding:9px 20px; background:none; border:1px solid var(--border2); border-radius:var(--radius-sm); color:var(--muted); font-family:'DM Sans',sans-serif; font-size:13px; cursor:pointer; }
+.btn-manual { margin-top:4px; padding:9px 20px; background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.2); border-radius:var(--radius-sm); color:#60a5fa; font-family:'DM Sans',sans-serif; font-size:13px; cursor:pointer; }
+
+/* LOADING */
+#s-loading { min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; }
+.load-steps { display:flex; flex-direction:column; gap:8px; margin-top:8px; }
+.load-step { display:flex; align-items:center; gap:10px; font-size:13px; color:var(--muted); }
+.load-step.done { color:var(--green); }
+.load-step.active { color:var(--text); }
+.step-dot { width:8px; height:8px; border-radius:50%; background:var(--border2); flex-shrink:0; }
+.load-step.done .step-dot { background:var(--green); }
+.load-step.active .step-dot { background:var(--accent); animation:pulse 1s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+/* DASHBOARD */
+#s-dash { min-height:100vh; }
+.topbar { background:var(--bg2); border-bottom:1px solid var(--border); padding:0 2rem; height:60px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:10; }
+.topbar-left { display:flex; align-items:center; gap:14px; }
+.topbar-logo { width:32px; height:32px; background:var(--accent); border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:15px; }
+.topbar-title { font-size:15px; font-weight:600; }
+.topbar-date { font-size:12px; color:var(--muted); }
+.topbar-right { display:flex; align-items:center; gap:10px; }
+.btn-sm { padding:7px 14px; background:none; border:1px solid var(--border2); border-radius:var(--radius-sm); color:var(--muted); font-size:12px; font-family:'DM Sans',sans-serif; cursor:pointer; }
+.btn-sm:hover { color:var(--text); }
+.btn-sm.danger:hover { color:var(--hot); border-color:var(--hot); }
+.dash-body { padding:2rem; max-width:1200px; margin:0 auto; }
+
+/* Metrics */
+.metrics-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-bottom:2rem; }
+.metric-card { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem; position:relative; overflow:hidden; }
+.metric-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; }
+.metric-card.blue::before { background:var(--accent); }
+.metric-card.hot::before { background:var(--hot); }
+.metric-card.green::before { background:var(--green); }
+.metric-card.pink::before { background:var(--pink); }
+.metric-card.warm::before { background:var(--warm); }
+.metric-icon { font-size:22px; margin-bottom:10px; }
+.metric-val { font-size:32px; font-weight:600; line-height:1; }
+.metric-lbl { font-size:12px; color:var(--muted); margin-top:6px; }
+
+/* Tabs */
+.tab-bar { display:flex; gap:4px; background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:4px; margin-bottom:1.5rem; width:fit-content; }
+.tab { padding:8px 18px; border-radius:6px; font-size:13px; font-weight:500; cursor:pointer; border:none; background:none; color:var(--muted); font-family:'DM Sans',sans-serif; transition:all 0.15s; }
+.tab.active { background:var(--bg3); color:var(--text); border:1px solid var(--border2); }
+.panel { display:none; }
+.panel.active { display:block; }
+
+/* Cards */
+.section-card { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem; margin-bottom:1rem; }
+.section-label { font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.07em; margin-bottom:1rem; display:flex; align-items:center; gap:8px; }
+.count { background:var(--bg3); border:1px solid var(--border); border-radius:999px; padding:2px 8px; font-size:11px; color:var(--text); }
+
+/* Leads */
+.lead-row { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--border); }
+.lead-row:last-child { border-bottom:none; }
+.avatar { width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; flex-shrink:0; font-family:'DM Mono',monospace; }
+.lead-name { font-size:14px; font-weight:500; }
+.lead-meta { font-size:12px; color:var(--muted); margin-top:2px; }
+.lead-tags { display:flex; gap:5px; flex-wrap:wrap; margin-top:4px; }
+.badge { font-size:11px; font-weight:500; padding:2px 9px; border-radius:999px; }
+.badge-hot { background:rgba(239,68,68,0.15); color:#f87171; }
+.badge-warm { background:rgba(245,158,11,0.15); color:#fbbf24; }
+.badge-cold { background:rgba(59,130,246,0.15); color:#60a5fa; }
+.badge-green { background:rgba(16,185,129,0.15); color:#34d399; }
+.badge-pink { background:rgba(236,72,153,0.15); color:#f472b6; }
+
+/* AI */
+.ai-insight { background:var(--bg3); border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:0 var(--radius-sm) var(--radius-sm) 0; padding:12px 16px; font-size:13px; line-height:1.7; margin-bottom:10px; }
+.ai-insight strong { color:#60a5fa; font-weight:500; }
+.script-card { background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius-sm); padding:14px 16px; margin-bottom:10px; }
+.script-situation { font-size:11px; font-weight:600; color:var(--accent); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:8px; }
+.script-text { font-size:13px; line-height:1.8; color:var(--text); white-space:pre-wrap; }
+.token-bar { background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.2); border-radius:var(--radius-sm); padding:10px 16px; font-size:12px; color:#fbbf24; margin-bottom:1rem; display:none; align-items:center; justify-content:space-between; }
+.btn-renew { padding:5px 12px; background:rgba(245,158,11,0.2); border:1px solid rgba(245,158,11,0.3); border-radius:6px; color:#fbbf24; font-size:12px; cursor:pointer; font-family:'DM Sans',sans-serif; }
+.empty { font-size:13px; color:var(--muted); padding:12px 0; }
+.two-col { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+@media(max-width:700px) { .two-col{grid-template-columns:1fr} .topbar{padding:0 1rem} .dash-body{padding:1rem} }
+
+/* Manual code input */
+.manual-box { background:var(--bg3); border:1px solid var(--border2); border-radius:var(--radius-sm); padding:16px; margin-top:12px; display:none; }
+.manual-box p { font-size:13px; color:var(--muted); margin-bottom:10px; line-height:1.6; }
+.manual-row { display:flex; gap:8px; }
+.manual-row input { flex:1; }
+.btn-go { padding:11px 18px; background:var(--accent); color:#fff; border:none; border-radius:var(--radius-sm); font-size:13px; font-weight:600; cursor:pointer; font-family:'DM Sans',sans-serif; white-space:nowrap; }
+</style>
+</head>
+<body>
+
+<!-- SETUP -->
+<div id="s-setup" class="screen active">
+  <div class="setup-card">
+    <div class="logo-row">
+      <div class="logo-icon">📊</div>
+      <div>
+        <div class="logo-text">Dashboard Comercial</div>
+        <div class="logo-sub">Kommo + Inteligência Artificial</div>
+      </div>
+    </div>
+
+    <label>Subdomínio do Kommo</label>
+    <input type="text" id="inp-sub" placeholder="suaclinica (de suaclinica.kommo.com)" />
+
+    <label>Client ID</label>
+    <input type="text" id="inp-cid" placeholder="Cole seu Client ID aqui" />
+
+    <label>Client Secret</label>
+    <input type="password" id="inp-secret" placeholder="Cole seu Client Secret aqui" />
+
+    <button class="btn-connect" onclick="startOAuth()">
+      🔗 Conectar com Kommo
+    </button>
+    <div class="err-msg" id="setup-err"></div>
+
+    <div class="info-box">
+      <strong>Redirect URI para cadastrar no Kommo:</strong>
+      <span class="redirect-uri" id="redirect-uri-display">Carregando...</span>
+      <br>Copie a URL acima e cole no campo <strong>Redirect URI</strong> da sua integração no Kommo.<br><br>
+      Suas credenciais ficam salvas <strong>somente no seu navegador</strong>.
+    </div>
+  </div>
+</div>
+
+<!-- OAUTH WAITING -->
+<div id="s-oauth" class="screen">
+  <div class="spinner"></div>
+  <div class="oauth-title">Aguardando autorização...</div>
+  <div class="oauth-sub">
+    Uma janela foi aberta para você autorizar o acesso.<br>
+    Após aprovar no Kommo, o dashboard carrega automaticamente.
+  </div>
+  <div class="manual-box" id="manual-box">
+    <p>Se a janela fechar antes de carregar, cole aqui o código que apareceu na URL após o redirecionamento:</p>
+    <div class="manual-row">
+      <input type="text" id="inp-manual-code" placeholder="Cole o código de autorização aqui" />
+      <button class="btn-go" onclick="useManualCode()">Usar</button>
+    </div>
+  </div>
+  <button class="btn-manual" onclick="showManual()">Inserir código manualmente</button>
+  <button class="btn-cancel" onclick="cancelOAuth()">Cancelar</button>
+</div>
+
+<!-- LOADING -->
+<div id="s-loading" class="screen">
+  <div class="spinner"></div>
+  <div style="font-size:16px;font-weight:500;margin-top:4px;">Carregando seus dados...</div>
+  <div class="load-steps">
+    <div class="load-step active" id="ls-token"><div class="step-dot"></div>Obtendo token de acesso</div>
+    <div class="load-step" id="ls-leads"><div class="step-dot"></div>Buscando leads</div>
+    <div class="load-step" id="ls-notes"><div class="step-dot"></div>Analisando conversas</div>
+    <div class="load-step" id="ls-ai"><div class="step-dot"></div>Processando com IA</div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="s-dash" class="screen">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-logo">📊</div>
+      <div>
+        <div class="topbar-title">Dashboard Comercial</div>
+        <div class="topbar-date" id="dash-date">—</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button class="btn-sm" onclick="reloadData()">↺ Atualizar</button>
+      <button class="btn-sm danger" onclick="logout()">Sair</button>
+    </div>
+  </div>
+
+  <div class="dash-body">
+    <div class="token-bar" id="token-bar">
+      ⚠️ Token expira em breve
+      <button class="btn-renew" onclick="doRefreshToken()">Renovar agora</button>
+    </div>
+
+    <div class="metrics-grid">
+      <div class="metric-card blue"><div class="metric-icon">👥</div><div class="metric-val" id="m-new">—</div><div class="metric-lbl">Leads novos hoje</div></div>
+      <div class="metric-card hot"><div class="metric-icon">🔥</div><div class="metric-val" id="m-hot">—</div><div class="metric-lbl">Leads quentes</div></div>
+      <div class="metric-card pink"><div class="metric-icon">💬</div><div class="metric-val" id="m-noreply">—</div><div class="metric-lbl">Sem resposta</div></div>
+      <div class="metric-card green"><div class="metric-icon">💉</div><div class="metric-val" id="m-proc">—</div><div class="metric-lbl">Lipo / Harm. Glútea</div></div>
+      <div class="metric-card warm"><div class="metric-icon">📈</div><div class="metric-val" id="m-total">—</div><div class="metric-lbl">Total ativos</div></div>
+    </div>
+
+    <div class="tab-bar">
+      <button class="tab active" onclick="showTab('leads')" id="tab-leads">Leads</button>
+      <button class="tab" onclick="showTab('analise')" id="tab-analise">Análise IA</button>
+      <button class="tab" onclick="showTab('scripts')" id="tab-scripts">Scripts</button>
+    </div>
+
+    <div class="panel active" id="panel-leads">
+      <div class="two-col">
+        <div>
+          <div class="section-card">
+            <div class="section-label">Leads de hoje <span class="count" id="cnt-new">0</span></div>
+            <div id="list-new"><div class="empty">Carregando...</div></div>
+          </div>
+          <div class="section-card">
+            <div class="section-label">💉 Lipo / Harm. Glútea <span class="count" id="cnt-proc">0</span></div>
+            <div id="list-proc"><div class="empty">Carregando...</div></div>
+          </div>
+        </div>
+        <div>
+          <div class="section-card">
+            <div class="section-label">💬 Sem resposta <span class="count" id="cnt-noreply">0</span></div>
+            <div id="list-noreply"><div class="empty">Carregando...</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="panel-analise">
+      <div class="two-col">
+        <div class="section-card">
+          <div class="section-label">🌡️ Classificação de temperatura</div>
+          <div id="list-temp"><div class="empty">Aguardando análise...</div></div>
+        </div>
+        <div class="section-card">
+          <div class="section-label">🔍 Gargalos identificados</div>
+          <div id="list-gargalos"><div class="empty">Aguardando análise...</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="panel-scripts">
+      <div class="section-card">
+        <div class="section-label">💬 Scripts sugeridos pela IA</div>
+        <div id="list-scripts"><div class="empty">Aguardando análise...</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const S = { sub:'', cid:'', secret:'', accessToken:'', refreshToken:'', tokenExpiry:0, leads:[], oauthWin:null, oauthTimer:null };
+const PROC_KW = ['lipo','lipoaspiração','lipoescultura','glútea','glutea','bumbum','quadril','harm glut'];
+const REDIRECT_URI = window.location.origin + window.location.pathname.replace(/\/$/,'') + '/';
+
+function save() { localStorage.setItem('kmm2', JSON.stringify({ sub:S.sub, cid:S.cid, secret:S.secret, accessToken:S.accessToken, refreshToken:S.refreshToken, tokenExpiry:S.tokenExpiry })); }
+function loadSaved() { try { const d=JSON.parse(localStorage.getItem('kmm2')||'{}'); Object.assign(S,d); return !!S.accessToken; } catch { return false; } }
+function show(id) { document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+
+function startOAuth() {
+  const sub=document.getElementById('inp-sub').value.trim();
+  const cid=document.getElementById('inp-cid').value.trim();
+  const secret=document.getElementById('inp-secret').value.trim();
+  const err=document.getElementById('setup-err');
+  err.style.display='none';
+  if (!sub||!cid||!secret) { err.textContent='Preencha todos os campos.'; err.style.display='block'; return; }
+  S.sub=sub; S.cid=cid; S.secret=secret; save();
+  const authUrl=`https://${sub}.kommo.com/oauth?client_id=${cid}&mode=popup&state=dash`;
+  show('s-oauth');
+  S.oauthWin=window.open(authUrl,'kommo-oauth','width=620,height=720,left=200,top=80');
+  S.oauthTimer=setInterval(()=>{
+    try {
+      if (!S.oauthWin||S.oauthWin.closed) { clearInterval(S.oauthTimer); return; }
+      const url=S.oauthWin.location.href;
+      if (url&&url.includes('code=')) {
+        const code=new URL(url).searchParams.get('code');
+        if (code) { clearInterval(S.oauthTimer); S.oauthWin.close(); exchangeCode(code); }
+      }
+    } catch(e) {}
+  }, 600);
+}
+
+function showManual() { document.getElementById('manual-box').style.display='block'; }
+function useManualCode() {
+  const code=document.getElementById('inp-manual-code').value.trim();
+  if (!code) return;
+  clearInterval(S.oauthTimer);
+  if (S.oauthWin) S.oauthWin.close();
+  exchangeCode(code);
+}
+function cancelOAuth() { clearInterval(S.oauthTimer); if(S.oauthWin) S.oauthWin.close(); show('s-setup'); }
+
+async function exchangeCode(code) {
+  show('s-loading');
+  setStep('ls-token','active');
+  try {
+    const r=await fetch(`https://${S.sub}.kommo.com/oauth2/access_token`,{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ client_id:S.cid, client_secret:S.secret, grant_type:'authorization_code', code, redirect_uri:REDIRECT_URI })
+    });
+    if (!r.ok) { const e=await r.json(); throw new Error(e.hint||e.message||'Erro na troca do código'); }
+    const d=await r.json();
+    S.accessToken=d.access_token; S.refreshToken=d.refresh_token; S.tokenExpiry=Date.now()+(d.expires_in*1000);
+    save(); setStep('ls-token','done'); await loadDashboard();
+  } catch(e) {
+    show('s-setup');
+    const err=document.getElementById('setup-err');
+    err.textContent='❌ '+e.message+' — Verifique se o Redirect URI cadastrado no Kommo é: '+REDIRECT_URI;
+    err.style.display='block';
+  }
+}
+
+async function doRefreshToken() {
+  try {
+    const r=await fetch(`https://${S.sub}.kommo.com/oauth2/access_token`,{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ client_id:S.cid, client_secret:S.secret, grant_type:'refresh_token', refresh_token:S.refreshToken, redirect_uri:REDIRECT_URI })
+    });
+    if (!r.ok) throw new Error('Falha');
+    const d=await r.json();
+    S.accessToken=d.access_token; S.refreshToken=d.refresh_token; S.tokenExpiry=Date.now()+(d.expires_in*1000);
+    save(); document.getElementById('token-bar').style.display='none';
+  } catch(e) { logout(); }
+}
+
+async function kommo(path) {
+  const r=await fetch(`https://${S.sub}.kommo.com/api/v4${path}`,{ headers:{Authorization:'Bearer '+S.accessToken} });
+  if (r.status===401) { try { await doRefreshToken(); } catch(e){} return kommo(path); }
+  if (!r.ok) throw new Error(`Erro ${r.status}`);
+  return r.json();
+}
+
+function setStep(id, state) {
+  const ids=['ls-token','ls-leads','ls-notes','ls-ai'];
+  const idx=ids.indexOf(id);
+  ids.forEach((s,i)=>{ const el=document.getElementById(s); el.classList.remove('active','done'); if(i<idx) el.classList.add('done'); else if(i===idx) el.classList.add(state); });
+}
+
+async function loadDashboard() {
+  show('s-loading'); setStep('ls-leads','active');
+  let allLeads=[];
+  try {
+    const today=new Date(); today.setHours(0,0,0,0);
+    const todayTs=Math.floor(today.getTime()/1000);
+    for(let page=1;page<=5;page++){
+      const r=await kommo(`/leads?limit=250&page=${page}&order[created_at]=desc`);
+      const batch=(r._embedded&&r._embedded.leads)||[];
+      allLeads=allLeads.concat(batch);
+      if(batch.length<250) break;
+      if(batch.length&&batch[batch.length-1].created_at<todayTs-86400*30) break;
+    }
+  } catch(e) { show('s-setup'); document.getElementById('setup-err').textContent='❌ '+e.message; document.getElementById('setup-err').style.display='block'; return; }
+
+  setStep('ls-notes','active');
+  let notes={};
+  try {
+    const ids=allLeads.slice(0,50).map(l=>l.id).join(',');
+    const nr=await kommo(`/leads/notes?limit=250&filter[entity_id]=${ids}`);
+    ((nr._embedded&&nr._embedded.notes)||[]).forEach(n=>{ if(!notes[n.entity_id]) notes[n.entity_id]=[]; notes[n.entity_id].push(n); });
+  } catch(e){}
+
+  setStep('ls-ai','active');
+  S.leads=allLeads;
+
+  const today=new Date(); today.setHours(0,0,0,0);
+  const todayTs=Math.floor(today.getTime()/1000);
+  const todayLeads=allLeads.filter(l=>l.created_at>=todayTs);
+  const procLeads=allLeads.filter(l=>matchesProc(l));
+  const noReplyLeads=allLeads.filter(l=>{ const ns=(notes[l.id]||[]); if(!ns.length) return true; const last=ns.sort((a,b)=>b.created_at-a.created_at)[0]; return last&&['common','call_in'].includes(last.note_type); });
+
+  let aiData=null;
+  try { aiData=await runAI(allLeads.slice(0,40)); } catch(e){}
+
+  document.getElementById('dash-date').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('m-new').textContent=todayLeads.length;
+  document.getElementById('m-noreply').textContent=noReplyLeads.length;
+  document.getElementById('m-proc').textContent=procLeads.length;
+  document.getElementById('m-total').textContent=allLeads.length;
+  document.getElementById('m-hot').textContent=aiData?aiData.temperature.filter(l=>l.temp==='quente').length:'?';
+
+  renderList('list-new','cnt-new',todayLeads,()=>[{label:'✨ Novo',cls:'badge-green'}]);
+  renderList('list-noreply','cnt-noreply',noReplyLeads,()=>[{label:'⏳ Aguardando',cls:'badge-pink'}]);
+  renderList('list-proc','cnt-proc',procLeads,l=>{ const t=(l.name||'').toLowerCase(); const tags=[]; if(t.includes('lipo')) tags.push({label:'Lipo',cls:'badge-green'}); if(t.includes('glút')||t.includes('glut')||t.includes('bumbum')) tags.push({label:'Harm. Glútea',cls:'badge-green'}); return tags.length?tags:[{label:'Procedimento',cls:'badge-green'}]; });
+
+  if(aiData){ renderTemp(aiData.temperature); renderGargalos(aiData.gargalos); renderScripts(aiData.scripts); }
+  else { ['list-temp','list-gargalos','list-scripts'].forEach(id=>{ document.getElementById(id).innerHTML='<div class="empty">Análise IA não disponível. Verifique a chave da API.</div>'; }); }
+
+  if(S.tokenExpiry&&(S.tokenExpiry-Date.now())<2*60*60*1000) document.getElementById('token-bar').style.display='flex';
+  show('s-dash');
+}
+
+async function runAI(leads) {
+  const payload=leads.map(l=>({ id:l.id, name:l.name, price:l.price, created_at:l.created_at, status_id:l.status_id, custom:(l.custom_fields_values||[]).slice(0,3).map(f=>f.field_name+':'+(((f.values||[])[0])||{}).value).join(', ') }));
+  const res=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      model:'claude-sonnet-4-20250514', max_tokens:1500,
+      system:`Especialista em vendas para clínica de estética. Retorne APENAS JSON válido sem markdown:
+{"temperature":[{"id":number,"name":"string","temp":"quente|morno|frio","reason":"string"}],"gargalos":["string","string","string"],"scripts":[{"situation":"string","script":"string"},{"situation":"string","script":"string"}]}
+Quente: lead recente, alto valor, procedimento específico. Frio: antigo, sem interação. Scripts: abordagem WhatsApp para reativar frios e fechar quentes.`,
+      messages:[{role:'user',content:'Leads: '+JSON.stringify(payload)}]
+    })
+  });
+  if(!res.ok) return null;
+  const d=await res.json();
+  const txt=(d.content||[]).map(c=>c.text||'').join('');
+  const m=txt.match(/\{[\s\S]*\}/);
+  return m?JSON.parse(m[0]):null;
+}
+
+// ─── RENDER ───
+const AVATAR_COLORS=[['#1e3a5f','#60a5fa'],['#1a3326','#34d399'],['#3b1f2b','#f472b6'],['#3b2a0e','#fbbf24'],['#2a1f3b','#a78bfa']];
+function avatarStyle(n){ const i=((n||'X').charCodeAt(0))%AVATAR_COLORS.length; return `background:${AVATAR_COLORS[i][0]};color:${AVATAR_COLORS[i][1]}`; }
+function initials(n){ if(!n) return '?'; const p=n.trim().split(' '); return (p[0][0]+(p[1]?p[1][0]:'')).toUpperCase(); }
+function matchesProc(l){ const t=((l.name||'')+JSON.stringify(l.custom_fields_values||[])).toLowerCase(); return PROC_KW.some(k=>t.includes(k)); }
+function timeAgo(ts){ if(!ts) return ''; const h=Math.floor((Date.now()/1000-ts)/3600); if(h<1) return 'agora há pouco'; if(h<24) return `há ${h}h`; return `há ${Math.floor(h/24)}d`; }
+
+function renderList(lid,cid,leads,badgeFn){
+  const el=document.getElementById(lid); const cnt=document.getElementById(cid);
+  if(cnt) cnt.textContent=leads.length;
+  if(!leads.length){el.innerHTML='<div class="empty">Nenhum lead encontrado.</div>';return;}
+  el.innerHTML=leads.slice(0,10).map(l=>`<div class="lead-row">
+    <div class="avatar" style="${avatarStyle(l.name)}">${initials(l.name)}</div>
+    <div style="flex:1;min-width:0;">
+      <div class="lead-name">${l.name||'Sem nome'}</div>
+      <div class="lead-meta">${timeAgo(l.created_at)}${l.price?' · R$ '+l.price.toLocaleString('pt-BR'):''}</div>
+      <div class="lead-tags">${badgeFn(l).map(b=>`<span class="badge ${b.cls}">${b.label}</span>`).join('')}</div>
+    </div></div>`).join('');
+}
+
+function renderTemp(temps){
+  const el=document.getElementById('list-temp');
+  if(!temps||!temps.length){el.innerHTML='<div class="empty">Sem dados.</div>';return;}
+  el.innerHTML=temps.slice(0,12).map(l=>{ const cls=l.temp==='quente'?'badge-hot':l.temp==='morno'?'badge-warm':'badge-cold'; const icon=l.temp==='quente'?'🔥':l.temp==='morno'?'🌤':'🧊'; return `<div class="lead-row"><div class="avatar" style="${avatarStyle(l.name)}">${initials(l.name)}</div><div style="flex:1;min-width:0;"><div class="lead-name">${l.name||'Lead #'+l.id}</div><div class="lead-meta">${l.reason||''}</div><div class="lead-tags"><span class="badge ${cls}">${icon} ${l.temp}</span></div></div></div>`; }).join('');
+}
+
+function renderGargalos(g){
+  const el=document.getElementById('list-gargalos');
+  if(!g||!g.length){el.innerHTML='<div class="empty">Sem dados.</div>';return;}
+  el.innerHTML=g.map((x,i)=>`<div class="ai-insight"><strong>Gargalo ${i+1}:</strong> ${x}</div>`).join('');
+}
+
+function renderScripts(s){
+  const el=document.getElementById('list-scripts');
+  if(!s||!s.length){el.innerHTML='<div class="empty">Sem scripts.</div>';return;}
+  el.innerHTML=s.map(x=>`<div class="script-card"><div class="script-situation">${x.situation}</div><div class="script-text">${x.script}</div></div>`).join('');
+}
+
+function showTab(t){ ['leads','analise','scripts'].forEach(id=>{ document.getElementById('panel-'+id).classList.toggle('active',id===t); document.getElementById('tab-'+id).classList.toggle('active',id===t); }); }
+function logout(){ localStorage.removeItem('kmm2'); Object.assign(S,{sub:'',cid:'',secret:'',accessToken:'',refreshToken:'',tokenExpiry:0,leads:[]}); show('s-setup'); }
+async function reloadData(){ if(!S.accessToken) return; await loadDashboard(); }
+
+window.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('redirect-uri-display').textContent=REDIRECT_URI;
+  const params=new URLSearchParams(window.location.search);
+  const code=params.get('code');
+  if(code){ window.history.replaceState({},'',window.location.pathname); if(loadSaved()&&S.cid) { exchangeCode(code); return; } }
+  if(loadSaved()&&S.accessToken){ loadDashboard(); return; }
+  show('s-setup');
+});
+</script>
+</body>
+</html>
