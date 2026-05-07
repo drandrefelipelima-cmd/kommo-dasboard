@@ -1,32 +1,32 @@
-export default async function handler(req, res) {
-  // CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  if (req.method === 'OPTIONS') return res.status(200).end();
+export const config = { runtime: 'edge' };
 
-  const { subdomain, path } = req.query;
-  const token = req.headers['x-kommo-token'];
+export default async function handler(request) {
+  const url = new URL(request.url);
+  const subdomain = url.searchParams.get('subdomain');
+  const path = url.searchParams.get('path');
+  const token = request.headers.get('x-kommo-token');
 
-  if (!subdomain || !path || !token) {
-    return res.status(400).json({ error: 'Parametros faltando' });
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Content-Type': 'application/json',
+  };
+
+  if (request.method === 'OPTIONS') {
+    return new Response(null, { status: 200, headers });
   }
 
-  const url = `https://${subdomain}.kommo.com/api/v4/${path}`;
+  if (!subdomain || !path || !token) {
+    return new Response(JSON.stringify({ error: 'Parametros faltando' }), { status: 400, headers });
+  }
 
   try {
-    const response = await fetch(url, {
-      method: req.method,
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: req.method !== 'GET' ? JSON.stringify(req.body) : undefined,
+    const kommoUrl = `https://${subdomain}.kommo.com/api/v4/${path}`;
+    const resp = await fetch(kommoUrl, {
+      headers: { 'Authorization': `Bearer ${token}` }
     });
-
-    const data = await response.json();
-    return res.status(response.status).json(data);
+    const data = await resp.json();
+    return new Response(JSON.stringify(data), { status: resp.status, headers });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers });
   }
 }
