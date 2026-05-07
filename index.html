@@ -280,7 +280,7 @@ input::placeholder { color:var(--muted); }
 <script>
 const S = { sub:'', cid:'', secret:'', accessToken:'', refreshToken:'', tokenExpiry:0, leads:[], oauthWin:null, oauthTimer:null };
 const PROC_KW = ['lipo','lipoaspiração','lipoescultura','glútea','glutea','bumbum','quadril','harm glut'];
-const REDIRECT_URI = window.location.origin + window.location.pathname.replace(/\/$/,'') + '/';
+const REDIRECT_URI = window.location.origin + '/callback';
 
 function save() { localStorage.setItem('kmm2', JSON.stringify({ sub:S.sub, cid:S.cid, secret:S.secret, accessToken:S.accessToken, refreshToken:S.refreshToken, tokenExpiry:S.tokenExpiry })); }
 function loadSaved() { try { const d=JSON.parse(localStorage.getItem('kmm2')||'{}'); Object.assign(S,d); return !!S.accessToken; } catch { return false; } }
@@ -297,16 +297,29 @@ function startOAuth() {
   const authUrl=`https://${sub}.kommo.com/oauth?client_id=${cid}&mode=popup&state=dash`;
   show('s-oauth');
   S.oauthWin=window.open(authUrl,'kommo-oauth','width=620,height=720,left=200,top=80');
+
+  window._oauthListener=function(event){
+    if(event.data&&event.data.type==='kmm_oauth'&&event.data.code){
+      window.removeEventListener('message',window._oauthListener);
+      clearInterval(S.oauthTimer);
+      exchangeCode(event.data.code);
+    }
+  };
+  window.addEventListener('message',window._oauthListener);
+
   S.oauthTimer=setInterval(()=>{
-    try {
-      if (!S.oauthWin||S.oauthWin.closed) { clearInterval(S.oauthTimer); return; }
-      const url=S.oauthWin.location.href;
-      if (url&&url.includes('code=')) {
-        const code=new URL(url).searchParams.get('code');
-        if (code) { clearInterval(S.oauthTimer); S.oauthWin.close(); exchangeCode(code); }
+    if(!S.oauthWin||S.oauthWin.closed){
+      clearInterval(S.oauthTimer);
+      window.removeEventListener('message',window._oauthListener);
+      const code=localStorage.getItem('kmm_oauth_code');
+      const ts=parseInt(localStorage.getItem('kmm_oauth_ts')||'0');
+      if(code&&(Date.now()-ts)<60000){
+        localStorage.removeItem('kmm_oauth_code');
+        localStorage.removeItem('kmm_oauth_ts');
+        exchangeCode(code);
       }
-    } catch(e) {}
-  }, 600);
+    }
+  },800);
 }
 
 function showManual() { document.getElementById('manual-box').style.display='block'; }
