@@ -15,7 +15,6 @@ export default async function handler(request) {
   const url = new URL(request.url);
   const service = url.searchParams.get('service');
 
-  // ── Proxy Kommo ──
   if (service === 'kommo') {
     const subdomain = url.searchParams.get('subdomain');
     const path = url.searchParams.get('path');
@@ -35,10 +34,12 @@ export default async function handler(request) {
     }
   }
 
-  // ── Proxy Anthropic ──
   if (service === 'ai') {
     try {
       const body = await request.json();
+      if (!body.apiKey) {
+        return new Response(JSON.stringify({ error: 'apiKey ausente' }), { status: 400, headers });
+      }
       const resp = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
