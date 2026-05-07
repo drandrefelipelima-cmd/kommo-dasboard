@@ -265,7 +265,7 @@ async function loadDash(){
     if(contactIds.length){
       var uniqueIds=[...new Set(contactIds)].slice(0,50);
       var cr=await kommo('contacts?id[]='+uniqueIds.join('&id[]='));
-      var contacts=(cr._embedded&&cr._embedded.contacts)||[];
+      var cr=await kommo('contacts?filter[id][]='+uniqueIds.join('&filter[id][]='));
       contacts.forEach(function(c){CACHE.contacts[c.id]=c.name});
     }
     // Mapeia nome real para cada lead
