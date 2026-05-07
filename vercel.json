@@ -1,10 +1,5 @@
 {
   "version": 2,
-  "functions": {
-    "api/kommo.js": {
-      "runtime": "edge"
-    }
-  },
   "routes": [
     { "src": "/api/kommo", "dest": "/api/kommo.js" },
     { "src": "/(.*)", "dest": "/index.html" }
