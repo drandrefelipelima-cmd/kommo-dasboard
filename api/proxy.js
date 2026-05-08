@@ -1,5 +1,5 @@
 export const config = { runtime: 'edge' };
- 
+
 export default async function handler(request) {
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -7,14 +7,14 @@ export default async function handler(request) {
     'Access-Control-Allow-Headers': 'Content-Type',
     'Content-Type': 'application/json',
   };
- 
+
   if (request.method === 'OPTIONS') {
     return new Response(null, { status: 200, headers });
   }
- 
+
   const url = new URL(request.url);
   const service = url.searchParams.get('service');
- 
+
   if (service === 'kommo') {
     const subdomain = url.searchParams.get('subdomain');
     const path = url.searchParams.get('path');
@@ -33,7 +33,7 @@ export default async function handler(request) {
       return new Response(JSON.stringify({ error: err.message }), { status: 500, headers });
     }
   }
- 
+
   if (service === 'ai') {
     try {
       const body = await request.json();
@@ -41,7 +41,7 @@ export default async function handler(request) {
         return new Response(JSON.stringify({ error: 'apiKey ausente' }), { status: 400, headers });
       }
       const prompt = body.system + '\n\n' + body.messages[0].content;
-      const geminiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + body.apiKey;
+      const geminiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + body.apiKey;
       const resp = await fetch(geminiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -51,6 +51,9 @@ export default async function handler(request) {
         })
       });
       const data = await resp.json();
+      if (!resp.ok) {
+        return new Response(JSON.stringify({ error: 'Gemini erro: ' + JSON.stringify(data) }), { status: 200, headers });
+      }
       const text = data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts
         ? data.candidates[0].content.parts.map(function(p) { return p.text || ''; }).join('')
         : '';
@@ -58,9 +61,9 @@ export default async function handler(request) {
         content: [{ type: 'text', text: text }]
       }), { status: 200, headers });
     } catch (err) {
-      return new Response(JSON.stringify({ error: err.message }), { status: 500, headers });
+      return new Response(JSON.stringify({ error: 'Catch: ' + err.message }), { status: 200, headers });
     }
   }
- 
+
   return new Response(JSON.stringify({ error: 'Servico invalido' }), { status: 400, headers });
 }
