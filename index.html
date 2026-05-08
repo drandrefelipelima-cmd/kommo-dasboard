@@ -82,10 +82,11 @@ input:focus{border-color:var(--blue)}input::placeholder{color:var(--muted)}
 .convText{font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:8px}
 .convScore{display:flex;align-items:center;gap:8px;font-size:12px}
 .scoreDot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.aiNote{background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.15);border-radius:var(--rs);padding:10px 13px;font-size:12px;color:var(--muted);margin-bottom:14px}
 </style>
 </head>
 <body>
-
+ 
 <div id="tLogin">
   <div class="loginBox">
     <div class="brand">
@@ -94,22 +95,22 @@ input:focus{border-color:var(--blue)}input::placeholder{color:var(--muted)}
     </div>
     <span class="lbl">Subdominio do Kommo</span>
     <input id="iSub" type="text" placeholder="ex: drandrefelipelima">
-    <span class="lbl">Token do Kommo (longa duracao)</span>
+    <span class="lbl">Token do Kommo</span>
     <input id="iToken" type="password" placeholder="Cole o token gerado no Kommo">
-    <span class="lbl">Chave API Anthropic (para IA)</span>
-    <input id="iAI" type="password" placeholder="sk-ant-...">
+    <span class="lbl">Chave API Gemini (gratis)</span>
+    <input id="iAI" type="password" placeholder="AIza...">
     <button class="btnBlue" onclick="connect()">Entrar no Dashboard</button>
     <div class="errBox" id="errBox"></div>
     <div class="infoCard">
-      <strong>A chave Anthropic ativa:</strong>
+      <strong>Chave Gemini gratis em:</strong> aistudio.google.com → Get API Key
       <div class="si"><div class="si-n">✓</div><span>Classificacao quente/morno/frio</span></div>
-      <div class="si"><div class="si-n">✓</div><span>Avaliacao de conversas</span></div>
+      <div class="si"><div class="si-n">✓</div><span>Avaliacao de conversas + estrategias</span></div>
       <div class="si"><div class="si-n">✓</div><span>Ranking de objecoes com %</span></div>
-      <div class="si"><div class="si-n">✓</div><span>Scripts personalizados</span></div>
+      <div class="si"><div class="si-n">✓</div><span>Scripts de fechamento personalizados</span></div>
     </div>
   </div>
 </div>
-
+ 
 <div id="tLoad" class="hide">
   <div class="spinner"></div>
   <div style="font-size:15px;font-weight:500" id="loadMsg">Carregando seus dados...</div>
@@ -120,7 +121,7 @@ input:focus{border-color:var(--blue)}input::placeholder{color:var(--muted)}
     <div class="step" id="s3"><div class="stepDot"></div>Analisando com IA</div>
   </div>
 </div>
-
+ 
 <div id="tDash" class="hide">
   <div class="topbar">
     <div class="topLeft">
@@ -147,7 +148,7 @@ input:focus{border-color:var(--blue)}input::placeholder{color:var(--muted)}
       <button class="tabBtn" id="tbObj" onclick="tab('obj')">Objecoes</button>
       <button class="tabBtn" id="tbScripts" onclick="tab('scripts')">Scripts</button>
     </div>
-
+ 
     <div class="panel on" id="pLeads">
       <div class="grid2">
         <div>
@@ -159,43 +160,45 @@ input:focus{border-color:var(--blue)}input::placeholder{color:var(--muted)}
         </div>
       </div>
     </div>
-
+ 
     <div class="panel" id="pAi">
+      <div class="aiNote">⚡ Analisando os 20 leads mais recentes para otimizar o uso gratuito do Gemini.</div>
       <div class="grid2">
         <div class="sCard"><div class="sLabel">🌡️ Temperatura</div><div id="lTemp"><div class="empty">Aguardando...</div></div></div>
-        <div class="sCard"><div class="sLabel">🔍 Gargalos</div><div id="lGarg"><div class="empty">Aguardando...</div></div></div>
+        <div class="sCard"><div class="sLabel">🔍 Gargalos do funil</div><div id="lGarg"><div class="empty">Aguardando...</div></div></div>
       </div>
     </div>
-
+ 
     <div class="panel" id="pConv">
-      <div class="sCard"><div class="sLabel">💬 Avaliacao de conversas</div><div id="lConv"><div class="empty">Aguardando...</div></div></div>
+      <div class="aiNote">💬 Avaliando as conversas mais recentes com estrategia de fechamento para cada lead.</div>
+      <div class="sCard"><div class="sLabel">Avaliacao de conversas</div><div id="lConv"><div class="empty">Aguardando...</div></div></div>
     </div>
-
+ 
     <div class="panel" id="pObj">
       <div class="grid2">
         <div class="sCard"><div class="sLabel">📊 Ranking de objecoes</div><div id="lObj"><div class="empty">Aguardando...</div></div></div>
-        <div class="sCard"><div class="sLabel">💡 Como superar</div><div id="lObjTips"><div class="empty">Aguardando...</div></div></div>
+        <div class="sCard"><div class="sLabel">💡 Como superar cada objecao</div><div id="lObjTips"><div class="empty">Aguardando...</div></div></div>
       </div>
     </div>
-
+ 
     <div class="panel" id="pScripts">
-      <div class="sCard"><div class="sLabel">💬 Scripts sugeridos pela IA</div><div id="lScripts"><div class="empty">Aguardando...</div></div></div>
+      <div class="sCard"><div class="sLabel">💬 Scripts de fechamento</div><div id="lScripts"><div class="empty">Aguardando...</div></div></div>
     </div>
   </div>
 </div>
-
+ 
 <script>
 var S={sub:'',token:'',aiKey:''};
 var PROC=['lipo','lipoaspiracao','glutea','bumbum','quadril','harmonizacao'];
-
-function save(){localStorage.setItem('kd10',JSON.stringify({sub:S.sub,token:S.token,aiKey:S.aiKey}))}
-function load(){try{var d=JSON.parse(localStorage.getItem('kd10')||'{}');Object.assign(S,d);return!!(S.sub&&S.token)}catch(e){return false}}
+ 
+function save(){localStorage.setItem('kd11',JSON.stringify({sub:S.sub,token:S.token,aiKey:S.aiKey}))}
+function load(){try{var d=JSON.parse(localStorage.getItem('kd11')||'{}');Object.assign(S,d);return!!(S.sub&&S.token)}catch(e){return false}}
 function show(id){['tLogin','tLoad','tDash'].forEach(function(t){document.getElementById(t).classList.toggle('hide',t!==id)})}
 function step(n,msg){
   [0,1,2,3].forEach(function(i){var el=document.getElementById('s'+i);el.classList.remove('active','done');if(i<n)el.classList.add('done');else if(i===n)el.classList.add('active')});
   if(msg)document.getElementById('loadMsg').textContent=msg;
 }
-
+ 
 async function connect(){
   var sub=document.getElementById('iSub').value.trim().replace('.kommo.com','').replace('https://','');
   var token=document.getElementById('iToken').value.trim();
@@ -206,20 +209,15 @@ async function connect(){
   S.sub=sub;S.token=token;S.aiKey=aiKey;save();
   await loadDash();
 }
-
+ 
 async function kommo(path){
   var cleanPath=path.replace(/^\//,'');
   var url='/api/proxy?service=kommo&subdomain='+encodeURIComponent(S.sub)+'&path='+encodeURIComponent(cleanPath)+'&token='+encodeURIComponent(S.token);
-  console.log('Chamando:', cleanPath);
   var r=await fetch(url);
-  if(!r.ok){
-    var txt=await r.text();
-    console.log('Erro resposta:', txt);
-    throw new Error('Kommo erro '+r.status+' em '+cleanPath);
-  }
+  if(!r.ok)throw new Error('Kommo erro '+r.status);
   return r.json();
 }
-
+ 
 async function callAI(system,userMsg){
   if(!S.aiKey)return null;
   try{
@@ -229,27 +227,22 @@ async function callAI(system,userMsg){
       body:JSON.stringify({apiKey:S.aiKey,system:system,messages:[{role:'user',content:userMsg}]})
     });
     var d=await r.json();
-    console.log('AI status:',r.status,'resposta:',JSON.stringify(d).slice(0,300));
-    if(!r.ok)return null;
+    if(d.error)return null;
     return(d.content||[]).map(function(c){return c.text||''}).join('');
-  }catch(e){
-    console.log('AI erro:',e.message);
-    return null;
-  }
+  }catch(e){return null}
 }
-
+ 
 async function loadDash(){
   show('tLoad');step(0,'Verificando conexao...');
   try{await kommo('account')}
   catch(e){show('tLogin');var err=document.getElementById('errBox');err.textContent='Erro: '+e.message;err.style.display='block';return}
-
+ 
   step(1,'Buscando leads...');
   var leads=[];
   try{
     for(var p=1;p<=6;p++){
       var r=await kommo('leads?limit=250&page='+p+'&order[created_at]=desc&with=contacts');
       var b=(r._embedded&&r._embedded.leads)||[];
-      // Pega nome do contato direto do embedded
       b.forEach(function(l){
         if(l._embedded&&l._embedded.contacts&&l._embedded.contacts.length){
           l.contactName=l._embedded.contacts[0].name||'';
@@ -264,13 +257,14 @@ async function loadDash(){
     document.getElementById('errBox').style.display='block';
     return;
   }
-
+ 
   step(2,'Carregando conversas...');
   var notes={};
   try{
-    var ids=leads.slice(0,100).map(function(l){return l.id});
-    for(var i=0;i<Math.min(ids.length,100);i+=50){
-      var batch=ids.slice(i,i+50);
+    // Busca notas apenas dos 20 leads mais recentes para nao exceder limite do Gemini
+    var recentIds=leads.slice(0,50).map(function(l){return l.id});
+    for(var i=0;i<recentIds.length;i+=50){
+      var batch=recentIds.slice(i,i+50);
       var nr=await kommo('leads/notes?limit=250&filter[entity_id]='+batch.join(','));
       ((nr._embedded&&nr._embedded.notes)||[]).forEach(function(n){
         if(!notes[n.entity_id])notes[n.entity_id]=[];
@@ -278,7 +272,7 @@ async function loadDash(){
       });
     }
   }catch(e){console.log('Notas erro:',e)}
-
+ 
   // Metricas
   var now=new Date();
   var todayTs=Math.floor(new Date(now.getFullYear(),now.getMonth(),now.getDate()).getTime()/1000);
@@ -290,14 +284,14 @@ async function loadDash(){
     var last=ns.sort(function(a,b){return b.created_at-a.created_at})[0];
     return!last||(last.note_type!=='common'&&last.note_type!=='call_in');
   });
-
+ 
   document.getElementById('topDate').textContent=now.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
   document.getElementById('mNew').textContent=todayL.length;
   document.getElementById('mNoRep').textContent=noRepL.length;
   document.getElementById('mProc').textContent=procL.length;
   document.getElementById('mTotal').textContent=leads.length;
   document.getElementById('mHot').textContent='...';
-
+ 
   renderList('lNew','cNew',todayL,function(){return[{l:'Novo hoje',c:'tg'}]});
   renderList('lNoRep','cNoRep',noRepL,function(){return[{l:'Aguardando',c:'tp'}]});
   renderList('lProc','cProc',procL,function(l){
@@ -307,62 +301,83 @@ async function loadDash(){
     if(t.indexOf('glut')>=0||t.indexOf('bumbum')>=0)tags.push({l:'Harm. Glutea',c:'tg'});
     return tags.length?tags:[{l:'Procedimento',c:'tg'}];
   });
-
+ 
   show('tDash');
-
-  // IA em background
-  step(3,'Analisando com IA...');
+ 
   if(S.aiKey){
-    runAI(leads,notes);
+    step(3,'Analisando com IA...');
+    // Usa apenas 20 leads mais recentes para respeitar limite gratuito do Gemini
+    runAI(leads.slice(0,20),notes);
   } else {
     ['lTemp','lGarg','lConv','lObj','lObjTips','lScripts'].forEach(function(id){
-      document.getElementById(id).innerHTML='<div class="empty">Adicione a chave Anthropic para ativar a IA.</div>';
+      document.getElementById(id).innerHTML='<div class="empty">Adicione a chave Gemini para ativar a IA.</div>';
     });
   }
 }
-
+ 
 async function runAI(leads,notes){
-  var sample=leads.slice(0,50);
-  var payload=sample.map(function(l){
-    var ns=(notes[l.id]||[]).sort(function(a,b){return b.created_at-a.created_at}).slice(0,3);
-    var msgs=ns.map(function(n){return(n.params&&n.params.text)||''}).filter(Boolean).join(' | ');
-    return{id:l.id,name:dname(l),price:l.price,created_at:l.created_at,status_id:l.status_id,msgs:msgs.slice(0,300)};
+  var payload=leads.map(function(l){
+    var ns=(notes[l.id]||[]).sort(function(a,b){return b.created_at-a.created_at}).slice(0,5);
+    var msgs=ns.map(function(n){
+      var txt=(n.params&&n.params.text)||'';
+      return txt;
+    }).filter(Boolean).join(' | ');
+    return{
+      id:l.id,
+      name:dname(l),
+      price:l.price||0,
+      created_at:l.created_at,
+      status_id:l.status_id,
+      msgs:msgs.slice(0,400)
+    };
   });
-
-  var system='Voce e especialista em vendas de clinica estetica brasileira. Analise os leads e retorne APENAS JSON valido sem markdown nem explicacoes:\n'+
-  '{"temperature":[{"id":0,"name":"","temp":"quente|morno|frio","reason":""}],"gargalos":["","",""],"objecoes":[{"objecao":"","count":0,"pct":0,"como_superar":""}],"scripts":[{"situation":"","script":""},{"situation":"","script":""}],"conversas":[{"name":"","avaliacao":"positiva|neutra|negativa","resumo":"","sugestao":""}]}\n'+
-  'Regras: quente=lead recente+alto valor+procedimento especifico. frio=antigo sem interacao.\n'+
-  'objecoes: identifique as principais nas msgs, calcule % real do total. como_superar: resposta pratica.\n'+
-  'conversas: avalie as 5 mais recentes com resumo curto e sugestao de acao imediata.\n'+
-  'scripts: 2 scripts prontos para WhatsApp baseados nos leads reais, um para reativar frios, um para fechar quentes.';
-
-  var txt=await callAI(system,'Leads para analise: '+JSON.stringify(payload));
+ 
+  var system='Voce e especialista em vendas de clinica estetica brasileira (procedimentos: lipo, harmonizacao glutea, preenchimento, botox). '+
+    'Analise os leads com suas conversas e retorne APENAS JSON valido sem markdown:\n'+
+    '{\n'+
+    '"temperature":[{"id":0,"name":"","temp":"quente|morno|frio","reason":"motivo em 1 frase"}],\n'+
+    '"gargalos":["gargalo 1","gargalo 2","gargalo 3"],\n'+
+    '"objecoes":[{"objecao":"nome da objecao","count":0,"pct":0,"como_superar":"resposta pratica e direta"}],\n'+
+    '"conversas":[{"name":"","avaliacao":"positiva|neutra|negativa","resumo":"resumo da conversa","sugestao":"proxima acao especifica","estrategia_fechamento":"script exato para fechar esse lead"}],\n'+
+    '"scripts":[{"situation":"quando usar","script":"mensagem completa para WhatsApp"},{"situation":"quando usar","script":"mensagem completa para WhatsApp"}]\n'+
+    '}\n'+
+    'IMPORTANTE: estrategia_fechamento deve ser um script real e especifico baseado na conversa do lead. objecoes com % real calculado.';
+ 
+  var txt=await callAI(system,'Analise esses '+leads.length+' leads: '+JSON.stringify(payload));
+ 
   if(!txt){
     ['lTemp','lGarg','lConv','lObj','lObjTips','lScripts'].forEach(function(id){
-      document.getElementById(id).innerHTML='<div class="empty">Erro na IA. Verifique a chave Anthropic.</div>';
+      document.getElementById(id).innerHTML='<div class="empty">Erro na IA. Verifique a chave Gemini em aistudio.google.com</div>';
     });
     return;
   }
+ 
   var m=txt.match(/\{[\s\S]*\}/);
-  if(!m)return;
+  if(!m){
+    ['lTemp','lGarg','lConv','lObj','lObjTips','lScripts'].forEach(function(id){
+      document.getElementById(id).innerHTML='<div class="empty">Erro ao processar resposta da IA.</div>';
+    });
+    return;
+  }
+ 
   try{
     var ai=JSON.parse(m[0]);
     document.getElementById('mHot').textContent=ai.temperature?ai.temperature.filter(function(l){return l.temp==='quente'}).length:0;
-    renderTemp(ai.temperature);
-    renderGarg(ai.gargalos);
-    renderObjecoes(ai.objecoes);
-    renderConversas(ai.conversas);
-    renderScripts(ai.scripts);
-  }catch(e){console.log('AI parse erro:',e)}
+    if(ai.temperature)renderTemp(ai.temperature);
+    if(ai.gargalos)renderGarg(ai.gargalos);
+    if(ai.objecoes)renderObjecoes(ai.objecoes);
+    if(ai.conversas)renderConversas(ai.conversas);
+    if(ai.scripts)renderScripts(ai.scripts);
+  }catch(e){console.log('Parse erro:',e,txt)}
 }
-
+ 
 var AVC=[['#1e3a5f','#60a5fa'],['#1a3326','#34d399'],['#3b1f2b','#f472b6'],['#3b2a0e','#fbbf24'],['#2a1f3b','#a78bfa']];
 function ava(n){var i=((n||'?').charCodeAt(0))%5;return'background:'+AVC[i][0]+';color:'+AVC[i][1]}
 function ini(n){if(!n)return'?';var p=n.trim().split(' ');return(p[0][0]+(p[1]?p[1][0]:'')).toUpperCase()}
 function ago(ts){if(!ts)return'';var h=Math.floor((Date.now()/1000-ts)/3600);return h<1?'agora':h<24?'ha '+h+'h':'ha '+Math.floor(h/24)+'d'}
 function dname(l){return l.contactName||l.name||'Sem nome'}
 function matchProc(l){var t=(dname(l)+JSON.stringify(l.custom_fields_values||[])).toLowerCase();return PROC.some(function(k){return t.indexOf(k)>=0})}
-
+ 
 function renderList(lid,cid,leads,fn){
   if(cid)document.getElementById(cid).textContent=leads.length;
   var el=document.getElementById(lid);
@@ -372,23 +387,23 @@ function renderList(lid,cid,leads,fn){
     return'<div class="leadRow"><div class="ava" style="'+ava(n)+'">'+ini(n)+'</div><div style="flex:1;min-width:0"><div class="leadName">'+n+'</div><div class="leadMeta">'+ago(l.created_at)+(l.price?' · R$ '+l.price.toLocaleString('pt-BR'):'')+'</div><div class="tags">'+fn(l).map(function(b){return'<span class="tag '+b.c+'">'+b.l+'</span>'}).join('')+'</div></div></div>';
   }).join('');
 }
-
+ 
 function renderTemp(temps){
   var el=document.getElementById('lTemp');
   if(!temps||!temps.length){el.innerHTML='<div class="empty">Sem dados.</div>';return}
-  el.innerHTML=temps.slice(0,15).map(function(l){
+  el.innerHTML=temps.map(function(l){
     var cls=l.temp==='quente'?'tr':l.temp==='morno'?'ty':'tb';
     var ic=l.temp==='quente'?'🔥':l.temp==='morno'?'🌤':'🧊';
     return'<div class="leadRow"><div class="ava" style="'+ava(l.name)+'">'+ini(l.name)+'</div><div style="flex:1;min-width:0"><div class="leadName">'+(l.name||'Lead')+'</div><div class="leadMeta">'+(l.reason||'')+'</div><div class="tags"><span class="tag '+cls+'">'+ic+' '+l.temp+'</span></div></div></div>';
   }).join('');
 }
-
+ 
 function renderGarg(g){
   var el=document.getElementById('lGarg');
   if(!g||!g.length){el.innerHTML='<div class="empty">Sem dados.</div>';return}
   el.innerHTML=g.map(function(x,i){return'<div class="aiBlock"><strong>Gargalo '+(i+1)+':</strong> '+x+'</div>'}).join('');
 }
-
+ 
 function renderObjecoes(objs){
   var el=document.getElementById('lObj');
   var el2=document.getElementById('lObjTips');
@@ -405,26 +420,32 @@ function renderObjecoes(objs){
     return'<div class="aiBlock"><strong>'+o.objecao+':</strong> '+o.como_superar+'</div>';
   }).join('');
 }
-
+ 
 function renderConversas(convs){
   var el=document.getElementById('lConv');
   if(!convs||!convs.length){el.innerHTML='<div class="empty">Sem dados.</div>';return}
   el.innerHTML=convs.map(function(c){
     var color=c.avaliacao==='positiva'?'#10b981':c.avaliacao==='negativa'?'#ef4444':'#f59e0b';
     var label=c.avaliacao==='positiva'?'Positiva':c.avaliacao==='negativa'?'Negativa':'Neutra';
-    return'<div class="convCard"><div class="convName">'+c.name+'</div><div class="convText">'+c.resumo+'</div>'+
-      '<div class="convScore"><div class="scoreDot" style="background:'+color+'"></div>'+
-      '<span style="color:'+color+';font-weight:600">'+label+'</span>'+
-      '<span style="color:var(--muted);margin-left:8px">'+c.sugestao+'</span></div></div>';
+    return'<div class="convCard">'+
+      '<div class="convName">'+c.name+'</div>'+
+      '<div class="convText">'+c.resumo+'</div>'+
+      '<div class="convScore">'+
+        '<div class="scoreDot" style="background:'+color+'"></div>'+
+        '<span style="color:'+color+';font-weight:600">'+label+'</span>'+
+      '</div>'+
+      (c.estrategia_fechamento?'<div style="margin-top:10px;padding:10px;background:var(--bg2);border-radius:var(--rs);font-size:12px;line-height:1.7;color:var(--text)"><strong style="color:#60a5fa;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Estrategia de fechamento:</strong><br>'+c.estrategia_fechamento+'</div>':'')+
+      '<div style="margin-top:8px;font-size:11px;color:var(--muted)">Proxima acao: '+c.sugestao+'</div>'+
+    '</div>';
   }).join('');
 }
-
+ 
 function renderScripts(s){
   var el=document.getElementById('lScripts');
   if(!s||!s.length){el.innerHTML='<div class="empty">Sem scripts.</div>';return}
   el.innerHTML=s.map(function(x){return'<div class="scriptCard"><div class="scriptSit">'+x.situation+'</div><div class="scriptTxt">'+x.script+'</div></div>'}).join('');
 }
-
+ 
 function tab(t){
   var all={leads:'pLeads',ai:'pAi',conv:'pConv',obj:'pObj',scripts:'pScripts'};
   var btns={leads:'tbLeads',ai:'tbAi',conv:'tbConv',obj:'tbObj',scripts:'tbScripts'};
@@ -433,8 +454,8 @@ function tab(t){
     document.getElementById(btns[k]).classList.toggle('on',k===t);
   });
 }
-
-function logout(){localStorage.removeItem('kd10');S.sub='';S.token='';S.aiKey='';show('tLogin')}
+ 
+function logout(){localStorage.removeItem('kd11');S.sub='';S.token='';S.aiKey='';show('tLogin')}
 async function reloadData(){if(S.token)await loadDash()}
 window.addEventListener('DOMContentLoaded',function(){if(load())loadDash();else show('tLogin')});
 </script>
